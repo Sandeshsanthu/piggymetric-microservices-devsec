@@ -1,0 +1,11 @@
+-------------------------------------------------------------------------------
+Test set: com.piggymetrics.monitoring.MonitoringApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 2.895 s <<< FAILURE! - in com.piggymetrics.monitoring.MonitoringApplicationTests
+contextLoads(com.piggymetrics.monitoring.MonitoringApplicationTests)  Time elapsed: 0.023 s  <<< ERROR!
+java.lang.IllegalStateException: Failed to load ApplicationContext
+Caused by: java.lang.IllegalStateException: Cannot load configuration class: org.springframework.cloud.bootstrap.config.PropertySourceBootstrapConfiguration
+Caused by: java.lang.ExceptionInInitializerError
+Caused by: org.springframework.cglib.core.CodeGenerationException: java.lang.reflect.InaccessibleObjectException-->Unable to make protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain) throws java.lang.ClassFormatError accessible: module java.base does not "opens java.lang" to unnamed module @18ef96
+Caused by: java.lang.reflect.InaccessibleObjectException: Unable to make protected final java.lang.Class java.lang.ClassLoader.defineClass(java.lang.String,byte[],int,int,java.security.ProtectionDomain) throws java.lang.ClassFormatError accessible: module java.base does not "opens java.lang" to unnamed module @18ef96
+

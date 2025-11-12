@@ -1,0 +1,5 @@
+/home/sandeshs/piggymetrics/account-service/src/test/java/com/piggymetrics/account/client/StatisticsServiceClientFallbackTest.java
+/home/sandeshs/piggymetrics/account-service/src/test/java/com/piggymetrics/account/repository/AccountRepositoryTest.java
+/home/sandeshs/piggymetrics/account-service/src/test/java/com/piggymetrics/account/service/AccountServiceTest.java
+/home/sandeshs/piggymetrics/account-service/src/test/java/com/piggymetrics/account/AccountServiceApplicationTests.java
+/home/sandeshs/piggymetrics/account-service/src/test/java/com/piggymetrics/account/controller/AccountControllerTest.java

@@ -1,0 +1,5 @@
+/home/sandeshs/piggymetrics/auth-service/src/test/java/com/piggymetrics/auth/service/UserServiceTest.java
+/home/sandeshs/piggymetrics/auth-service/src/test/java/com/piggymetrics/auth/controller/UserControllerTest.java
+/home/sandeshs/piggymetrics/auth-service/src/test/java/com/piggymetrics/auth/repository/UserRepositoryTest.java
+/home/sandeshs/piggymetrics/auth-service/src/test/java/com/piggymetrics/auth/service/security/MongoUserDetailsServiceTest.java
+/home/sandeshs/piggymetrics/auth-service/src/test/java/com/piggymetrics/auth/AuthServiceApplicationTests.java

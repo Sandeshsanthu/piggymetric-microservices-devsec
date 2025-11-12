@@ -1,0 +1,6 @@
+/home/sandeshs/piggymetrics/notification-service/src/test/java/com/piggymetrics/notification/NotificationServiceApplicationTests.java
+/home/sandeshs/piggymetrics/notification-service/src/test/java/com/piggymetrics/notification/controller/RecipientControllerTest.java
+/home/sandeshs/piggymetrics/notification-service/src/test/java/com/piggymetrics/notification/repository/RecipientRepositoryTest.java
+/home/sandeshs/piggymetrics/notification-service/src/test/java/com/piggymetrics/notification/service/EmailServiceImplTest.java
+/home/sandeshs/piggymetrics/notification-service/src/test/java/com/piggymetrics/notification/service/RecipientServiceImplTest.java
+/home/sandeshs/piggymetrics/notification-service/src/test/java/com/piggymetrics/notification/service/NotificationServiceImplTest.java
