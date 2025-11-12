@@ -5,7 +5,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 /**
- * @author sandesh
+ * @author sandeshs
  */
 @Configuration
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
