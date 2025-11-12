@@ -95,7 +95,7 @@ spec:
     }
     post {
         failure {
-            echo "Pipeline failed. Please check logs for details."
+            echo "Pipeline failed. Please check logs for detailss."
         }
     }
 }
