@@ -13,6 +13,7 @@ pipeline {
         stage('Checkout') {
             steps { checkout scm }
         }
+
         stage('Detect Changed Services') {
             steps {
                 script {
@@ -20,7 +21,7 @@ pipeline {
                     def services = SERVICES.split(',').findAll { svc ->
                         changedFiles.any { it.startsWith("${svc}/") }
                     }
-                    if (!services) {
+                    if (!services || services.isEmpty()) {
                         echo "No service directories changed. Skipping build."
                         currentBuild.result = 'NOT_BUILT'
                         error("No relevant changes.")
@@ -30,27 +31,36 @@ pipeline {
                 }
             }
         }
-        stage('DevSecOps Pipeline per Service') {
-            when { environment name: 'CHANGED_SERVICES', value: { it?.length() > 0 } }
+
+        stage('Build & Deploy Pipeline per Service') {
+            when { expression { env.CHANGED_SERVICES?.trim() } }
             steps {
                 script {
                     for (svc in env.CHANGED_SERVICES.split(',')) {
                         dir(svc) {
-                            // Maven build
+                            // 1. Maven Build
                             sh "mvn clean package -DskipTests=false"
-                            // Dependency-Check (ensure installed)
-//                             sh "dependency-check.sh --project ${svc} --scan ."
-//                             // SonarQube scan (ensure Jenkins Sonar plugin is setup)
-//                             withSonarQubeEnv('SonarQube') {
-//                                 sh "mvn sonar:sonar -Dsonar.projectKey=${svc}"
-//                             }
-                            // Versioned artifact naming
+
+                            // 2. Dependency-Check Scan (disabled for now)
+                            // sh "dependency-check.sh --project ${svc} --scan ."
+
+                            // 3. SonarQube Analysis (disabled for now)
+                            // withSonarQubeEnv('SonarQube') {
+                            //     sh "mvn sonar:sonar -Dsonar.projectKey=${svc}"
+                            // }
+
+                            // 4. Build Docker Image
                             def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
                             def commit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                            def imageTag = "${svc}:${timestamp}-${commit}"
+                            sh "docker build -t ${imageTag} ."
+
+                            // 5. Trivy Scan (disabled for now)
+                            // sh "trivy image --exit-code 0 --no-progress ${imageTag}"
+
+                            // 6. Push Artifact to GCS
                             def jar = sh(script: "find target -name '*.jar' | head -n 1", returnStdout: true).trim()
                             def artifact = "${svc}-${timestamp}-${commit}.jar"
-
-                            // GCS upload
                             withCredentials([file(credentialsId: "${env.GCP_CREDENTIAL_ID}", variable: "GOOGLE_APPLICATION_CREDENTIALS")]) {
                                 sh """
                                     gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
@@ -58,15 +68,21 @@ pipeline {
                                 """
                             }
 
-                            // Placeholders for Docker, Trivy, K8s steps (see your diagram)
-                            // Example:
-                            // sh "docker build -t gcr.io/your-project/${svc}:${timestamp}-${commit} ."
-                            // sh "trivy image gcr.io/your-project/${svc}:${timestamp}-${commit}"
-                            // sh "ansible-playbook deploy.yml"
+                            // 7. Ansible Playbook for Deploy/Infra
+                            // Uncomment and modify if you have a playbook
+                            // sh "ansible-playbook -i inventory/hosts deploy.yml --extra-vars='service=${svc} image_tag=${imageTag}'"
+
+                            // 8. Kubernetes Deployment (optional, uncomment if configured)
+                            // sh "kubectl set image deployment/${svc} ${svc}=${imageTag}"
                         }
                     }
                 }
             }
+        }
+    }
+    post {
+        failure {
+            echo "Pipeline failed. Please check logs for details."
         }
     }
 }
