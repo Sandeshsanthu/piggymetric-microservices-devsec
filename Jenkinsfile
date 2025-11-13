@@ -34,11 +34,55 @@ spec:
     stages {
         stage('Checkout') {
             steps {
-                // Ensure checkout runs in the 'tools' container
                 container('tools') {
-                    checkout scm
+                    // Fetch full git history for correctness in all detached HEAD contexts
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [
+                            [$class: 'CloneOption', depth: 2, noTags: false, reference: '', shallow: true]
+                        ],
+                        userRemoteConfigs: [
+                            [url: 'https://github.com/Sandeshsanthu/piggymetric-microservices-devsec'] // Change if needed
+                        ]
+                    ])
                 }
             }
         }
 
-       }}
+        stage('Build Config Service') {
+            steps {
+                container('tools') {
+                    dir('config') {
+                        sh 'mvn clean package -DskipTests=false'
+                    }
+                }
+            }
+        }
+
+        stage('Push Artifact to GCS') {
+            steps {
+                container('tools') {
+                    script {
+                        def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
+                        def commit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                        def jar = sh(script: "ls config/target/*.jar | head -n 1", returnStdout: true).trim()
+                        def artifact = "config-${timestamp}-${commit}.jar"
+                        withCredentials([file(credentialsId: "${env.GCP_CREDENTIAL_ID}", variable: "GOOGLE_APPLICATION_CREDENTIALS")]) {
+                            sh """
+                                gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
+                                gsutil cp ${jar} gs://${env.GCS_BUCKET}/config/${artifact}
+                            """
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "Pipeline failed. Please check logs for details."
+        }
+    }
+}
