@@ -35,6 +35,7 @@ spec:
         stage('Checkout') {
             steps {
                 container('tools') {
+                sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/MyApp-Multibranch_main'
                     // Fetch full git history for correctness in all detached HEAD contexts
                     checkout([
                         $class: 'GitSCM',
