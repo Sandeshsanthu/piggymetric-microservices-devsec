@@ -41,46 +41,4 @@ spec:
             }
         }
 
-        stage('Detect Changed Services') {
-            steps {
-                container('tools') {
-                    script {
-                        def changedFiles = sh(script: "git diff --name-only HEAD~1", returnStdout: true).trim().split('\n')
-                        def services = SERVICES.split(',').findAll { svc ->
-                            changedFiles.any { it.startsWith("${svc}/") }
-                        }
-                        if (!services || services.isEmpty()) {
-                            echo "No service directories changed. Skipping build."
-                            currentBuild.result = 'NOT_BUILT'
-                            error("No relevant changes.")
-                        }
-                        env.CHANGED_SERVICES = services.join(',')
-                        echo "Changed services: ${env.CHANGED_SERVICES}"
-                    }
-                }
-            }
-        }
-
-        stage('Build & Deploy Pipeline per Service') {
-            when { expression { env.CHANGED_SERVICES?.trim() } }
-            steps {
-                container('tools') {
-                    script {
-                        for (svc in env.CHANGED_SERVICES.split(',')) {
-                            dir(svc) {
-                                sh "mvn clean package -DskipTests=false"
-                                // Steps redacted for brevity
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        failure {
-            echo "Pipeline failed. Please check logs for details."
-        }
-    }
-}
+       }}
