@@ -1,13 +1,12 @@
-pipeline {
-    agent {
-        kubernetes {
-            yaml """
+agent {
+    kubernetes {
+        yaml """
 apiVersion: v1
 kind: Pod
 spec:
   containers:
   - name: tools
-    image: ghcr.io/delivery-microservices/devsecops-ci:latest # <--- Use a custom/premium image, or public image if needed
+    image: maven:3.9-openjdk-17
     command:
     - cat
     tty: true
@@ -19,9 +18,9 @@ spec:
     hostPath:
       path: /var/run/docker.sock
 """
-            defaultContainer 'tools'
-        }
+        defaultContainer 'tools'
     }
+}
 
     environment {
         GCS_BUCKET = "artifacts-javas"
