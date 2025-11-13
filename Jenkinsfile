@@ -71,6 +71,11 @@ spec:
                         def artifact = "config-${timestamp}-${commit}.jar"
                         withCredentials([file(credentialsId: "${env.GCP_CREDENTIAL_ID}", variable: "GOOGLE_APPLICATION_CREDENTIALS")]) {
                             sh """
+                                apt-get update
+                                apt-get install -y curl python3 python3-pip
+                                curl -sSL https://sdk.cloud.google.com | bash
+                                export PATH=\$PATH:/root/google-cloud-sdk/bin
+                                gcloud --version
                                 gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
                                 gsutil cp ${jar} gs://${env.GCS_BUCKET}/config/${artifact}
                             """
