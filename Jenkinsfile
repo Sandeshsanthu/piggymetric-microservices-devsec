@@ -7,17 +7,21 @@ kind: Pod
 spec:
   containers:
   - name: tools
-    image: maven:3.9.6-eclipse-temurin-17
+    image: sandeshsanthu/jenkins-maven-gcloud:latest
     command:
     - cat
     tty: true
     volumeMounts:
     - name: docker-sock
       mountPath: /var/run/docker.sock
+    - name: m2-cache
+      mountPath: /root/.m2  # Maven cache volume
   volumes:
   - name: docker-sock
     hostPath:
       path: /var/run/docker.sock
+  - name: m2-cache
+    emptyDir: {}  # Swap this for a PVC for persistent cache
 """
             defaultContainer 'tools'
         }
@@ -35,8 +39,7 @@ spec:
         stage('Checkout') {
             steps {
                 container('tools') {
-                sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/MyApp-Multibranch_main'
-                    // Fetch full git history for correctness in all detached HEAD contexts
+                    sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/MyApp-Multibranch_main'
                     checkout([
                         $class: 'GitSCM',
                         branches: [[name: '*/main']],
@@ -44,7 +47,7 @@ spec:
                             [$class: 'CloneOption', depth: 2, noTags: false, reference: '', shallow: true]
                         ],
                         userRemoteConfigs: [
-                            [url: 'https://github.com/Sandeshsanthu/piggymetric-microservices-devsec'] // Change if needed
+                            [url: 'https://github.com/Sandeshsanthu/piggymetric-microservices-devsec']
                         ]
                     ])
                 }
@@ -71,9 +74,6 @@ spec:
                         def artifact = "config-${timestamp}-${commit}.jar"
                         withCredentials([file(credentialsId: "${env.GCP_CREDENTIAL_ID}", variable: "GOOGLE_APPLICATION_CREDENTIALS")]) {
                             sh """
-                                apt-get update
-                                apt-get install -y curl python3 python3-pip
-                                curl -sSL https://sdk.cloud.google.com | bash
                                 export PATH=\$PATH:/root/google-cloud-sdk/bin
                                 gcloud --version
                                 gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
