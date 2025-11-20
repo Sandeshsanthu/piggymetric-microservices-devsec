@@ -88,7 +88,7 @@ spec:
 
     post {
         failure {
-            echo "Pipelines failed. Please check logs for details."
+            echo "Pipelinesssssss failed. Please check logs for details."
         }
     }
 }
