@@ -10,7 +10,7 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.R
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 
 /**
- * @author cdov
+ * @author sandeshs
  */
 @EnableResourceServer
 @Configuration
