@@ -5,11 +5,11 @@ controller:
     password: admin
   resources:
     requests:
-      cpu: "200m"
-      memory: "512Mi"
-    limits:
       cpu: "1"
       memory: "2Gi"
+    limits:
+      cpu: "2"
+      memory: "3Gi"
 
 persistence:
   enabled: true
