@@ -7,17 +7,13 @@ kind: Pod
 spec:
   containers:
   - name: tools
-    image: maven:3.9.6-eclipse-temurin-17
+    image: maven:3.9.6-eclipse-temurin-17-slim
     command:
     - cat
     tty: true
     volumeMounts:
     - name: docker-sock
       mountPath: /var/run/docker.sock
-  volumes:
-  - name: docker-sock
-    hostPath:
-      path: /var/run/docker.sock
 """
             defaultContainer 'tools'
         }
@@ -29,66 +25,56 @@ spec:
         SERVICES = "account-service,auth-service,notification-service,config,gateway,mongodb,monitoring,registry,statistics-service,turbine-stream-service"
     }
 
-    options { skipDefaultCheckout() }
-
     stages {
         stage('Checkout') {
             steps {
                 container('tools') {
-                sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/MyApp-Multibranch_main'
-                    // Fetch full git history for correctness in all detached HEAD contexts
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        extensions: [
-                            [$class: 'CloneOption', depth: 2, noTags: false, reference: '', shallow: true]
-                        ],
-                        userRemoteConfigs: [
-                            [url: 'https://github.com/Sandeshsanthu/piggymetric-microservices-devsec'] // Change if needed
-                        ]
-                    ])
+                    sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/MyApp-Multibranch_main'
+                    checkout scm
                 }
             }
         }
 
-        stage('Build Config Service') {
+        stage('Build Services') {
             steps {
                 container('tools') {
-                    dir('config') {
-                        sh 'mvn clean package -DskipTests=false'
+                    script {
+                        def services = env.SERVICES.split(',')
+                        services.each { service ->
+                            dir(service) {
+                                sh 'mvn clean package -DskipTests=false -Dmaven.repo.local=.m2/repository'
+                            }
+                        }
                     }
                 }
             }
         }
 
-        stage('Push Artifact to GCS') {
+        stage('Push Artifacts to GCS') {
             steps {
                 container('tools') {
                     script {
                         def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
                         def commit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
-                        def jar = sh(script: "ls config/target/*.jar | head -n 1", returnStdout: true).trim()
-                        def artifact = "config-${timestamp}-${commit}.jar"
+
                         withCredentials([file(credentialsId: "${env.GCP_CREDENTIAL_ID}", variable: "GOOGLE_APPLICATION_CREDENTIALS")]) {
                             sh """
                                 apt-get update
                                 apt-get install -y curl python3 python3-pip
                                 curl -sSL https://sdk.cloud.google.com | bash
                                 export PATH=\$PATH:/root/google-cloud-sdk/bin
-                                gcloud --version
                                 gcloud auth activate-service-account --key-file=\$GOOGLE_APPLICATION_CREDENTIALS
-                                gsutil cp ${jar} gs://${env.GCS_BUCKET}/config/${artifact}
                             """
+
+                            services.each { service ->
+                                sh """
+                                    gsutil cp ${service}/target/*.jar gs://${env.GCS_BUCKET}/${service}/${service}-${timestamp}-${commit}.jar
+                                """
+                            }
                         }
                     }
                 }
             }
-        }
-    }
-
-    post {
-        failure {
-            echo "Pipeline failed. Please check logs for details."
         }
     }
 }
