@@ -16,7 +16,7 @@ import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
 
 /**
- * @author cdov
+ * @author sandeshs
  */
 @Configuration
 @EnableAuthorizationServer
