@@ -68,6 +68,7 @@ spec:
             steps {
                 container('tools') {
                     script {
+                        sh 'git config --global --add safe.directory /home/jenkins/agent/workspace/Maven-build'
                         def timestamp = sh(script: "date +%Y%m%d-%H%M%S", returnStdout: true).trim()
                         def commit = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                         def jar = sh(script: "ls config/target/*.jar | head -n 1", returnStdout: true).trim()
