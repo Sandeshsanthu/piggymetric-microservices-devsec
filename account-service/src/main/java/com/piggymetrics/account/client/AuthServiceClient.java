@@ -6,7 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 /*
-new services
+new servicesssss
 */
 @FeignClient(name = "auth-service")
 public interface AuthServiceClient {
