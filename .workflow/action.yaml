@@ -1,0 +1,71 @@
+name: Build and Deploy Microservices
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  GCS_BUCKET: "artifacts-javas"
+  GCP_CREDENTIAL_ID: ${{ secrets.GCP_CREDENTIAL_ID }}
+  SERVICES: "account-service,auth-service,notification-service,config,gateway,mongodb,monitoring,registry,statistics-service,turbine-stream-service"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: your-gcp-project-id
+        service_account_key: ${{ secrets.GCP_CREDENTIAL_JSON }}
+
+    # Detect changed services
+    - name: Detect changed services
+      id: changes
+      run: |
+        CHANGED_SERVICES=""
+        for SVC in $(echo "${SERVICES}" | tr ',' '\n'); do
+          SVC=$(echo $SVC | xargs)
+          if git diff --name-only ${{ github.sha }}~1 ${{ github.sha }} | grep "^$SVC/"; then
+            CHANGED_SERVICES="$CHANGED_SERVICES $SVC"
+          fi
+        done
+        echo "changed_services<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGED_SERVICES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    # Build changed services
+    - name: Build services
+      if: steps.changes.outputs.changed_services != ''
+      run: |
+        for SVC in ${{ steps.changes.outputs.changed_services }}; do
+          echo "Building $SVC..."
+          mvn -f $SVC/pom.xml clean package -DskipTests=false
+        done
+
+    # Push to GCS
+    - name: Push JARs to GCS
+      if: steps.changes.outputs.changed_services != ''
+      run: |
+        for SVC in ${{ steps.changes.outputs.changed_services }}; do
+          JAR=$(ls $SVC/target/*.jar | head -n 1)
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          COMMIT=$(git rev-parse --short HEAD)
+          ARTIFACT="${SVC}-${TIMESTAMP}-${COMMIT}.jar"
+          gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
+        done
+
+    - name: Failure Notification
+      if: failure()
+      run: echo "Pipeline failed. Please check logs for details."
