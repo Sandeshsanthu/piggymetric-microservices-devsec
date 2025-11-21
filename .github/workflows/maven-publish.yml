@@ -43,20 +43,24 @@ jobs:
           BASE_REF=""
         fi
 
+        echo "Using BASE_REF: $BASE_REF"
+
         CHANGED_SERVICES=""
-        for SVC in $(echo "${SERVICES}" | tr ',' '\n'); do
-          SVC=$(echo $SVC | xargs)
-          if [ -n "$BASE_REF" ]; then
-            if git diff --name-only $BASE_REF HEAD | grep "^$SVC/"; then
+        if [ -n "$BASE_REF" ]; then
+          CHANGED_FILES=$(git diff --name-only $BASE_REF HEAD)
+          echo "Changed files since $BASE_REF:"
+          echo "$CHANGED_FILES"
+          for SVC in $(echo "${SERVICES}" | tr ',' '\n'); do
+            SVC=$(echo "$SVC" | xargs)
+            if echo "$CHANGED_FILES" | grep -q "^$SVC/"; then
               CHANGED_SERVICES="$CHANGED_SERVICES $SVC"
             fi
-          else
-            # First commit: assume all services changed
-            CHANGED_SERVICES="$CHANGED_SERVICES $SVC"
-          fi
-        done
+          done
+        else
+          # First commit: assume all services changed
+          CHANGED_SERVICES=$(echo "${SERVICES}" | tr ',' ' ')
+        fi
 
-        # Change multiple lines into a single line for GITHUB_OUTPUT
         CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | xargs)
         echo "changed_services=$CHANGED_SERVICES" >> $GITHUB_OUTPUT
       env:
