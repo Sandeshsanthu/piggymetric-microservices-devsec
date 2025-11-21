@@ -8,7 +8,7 @@ on:
 env:
   GCS_BUCKET: "artifacts-javas"
   GCP_CREDENTIAL_ID: ${{ secrets.GCP_CREDENTIAL_ID }}
-  SERVICES: "account-service,auth-service,notification-service,config,gateway,mongodb,monitoring,registry,statistics-service,turbine-stream-service"
+  SERVICES: "account-service,auth-service,notification-service,config,gateway,monitoring,registry,statistics-service,turbine-stream-service"
 
 jobs:
   build-and-deploy:
