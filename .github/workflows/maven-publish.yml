@@ -34,7 +34,6 @@ jobs:
       with:
         project_id: sapient-reducer-477808-m0
 
-    # Detect changed services
     - name: Detect changed services
       id: changes
       run: |
@@ -63,18 +62,15 @@ jobs:
       env:
         SERVICES: ${{ env.SERVICES }}
 
-    # Build changed services
     - name: Build services
       run: |
         for SVC in ${{ steps.changes.outputs.changed_services }}; do
           echo "Building $SVC..."
-          mvn -f $SVC/pom.xml clean package -DskipTests=false \
+          mvn -f $SVC/pom.xml clean package -DskipTests \
             -Dsurefire.forkCount=1 \
-            -Dsurefire.memory=1g \
             -DargLine="-Xmx1024m"
         done
 
-    # Push to GCS
     - name: Push JARs to GCS
       if: steps.changes.outputs.changed_services != ''
       run: |
