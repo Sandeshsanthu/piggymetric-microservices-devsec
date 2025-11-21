@@ -66,6 +66,17 @@ jobs:
       env:
         SERVICES: ${{ env.SERVICES }}
 
+    - name: Print Maven dependency tree for changed services
+      if: steps.changes.outputs.changed_services != ''
+      run: |
+          CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
+          for SVC in $CHANGED_SERVICES; do
+            if [ -n "$SVC" ]; then
+              echo "Printing dependency tree for $SVC..."
+              mvn -f $SVC/pom.xml dependency:tree
+            fi
+          done
+
     - name: Build services
       if: steps.changes.outputs.changed_services != ''
       run: |
