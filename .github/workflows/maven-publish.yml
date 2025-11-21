@@ -67,14 +67,14 @@ jobs:
       run: |
         CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
         echo "Services to build: $CHANGED_SERVICES"
-        for SVC in $CHANGED_SERVICES; do
-          if [ -n "$SVC" ]; then
-            echo "Building $SVC..."
-            mvn -f $SVC/pom.xml clean package -DskipTests \
-                -Dsurefire.forkCount=1 \
-                -DargLine="-Xmx1024m"
-          fi
-        done
+#        for SVC in $CHANGED_SERVICES; do
+#          if [ -n "$SVC" ]; then
+#            echo "Building $SVC..."
+#            mvn -f $SVC/pom.xml clean package -DskipTests \
+#                -Dsurefire.forkCount=1 \
+#                -DargLine="-Xmx1024m"
+#          fi
+#        done
 
     - name: Push JARs to GCS
       if: steps.changes.outputs.changed_services != ''
