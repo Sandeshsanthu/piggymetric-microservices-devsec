@@ -56,19 +56,24 @@ jobs:
           fi
         done
 
-        echo "changed_services<<EOF" >> $GITHUB_OUTPUT
-        echo "$CHANGED_SERVICES" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        # Change multiple lines into a single line for GITHUB_OUTPUT
+        CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | xargs)
+        echo "changed_services=$CHANGED_SERVICES" >> $GITHUB_OUTPUT
       env:
         SERVICES: ${{ env.SERVICES }}
 
     - name: Build services
+      if: steps.changes.outputs.changed_services != ''
       run: |
-        for SVC in ${{ steps.changes.outputs.changed_services }}; do
-          echo "Building $SVC..."
-          mvn -f $SVC/pom.xml clean package -DskipTests \
-            -Dsurefire.forkCount=1 \
-            -DargLine="-Xmx1024m"
+        CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
+        echo "Services to build: $CHANGED_SERVICES"
+        for SVC in $CHANGED_SERVICES; do
+          if [ -n "$SVC" ]; then
+            echo "Building $SVC..."
+            mvn -f $SVC/pom.xml clean package -DskipTests \
+                -Dsurefire.forkCount=1 \
+                -DargLine="-Xmx1024m"
+          fi
         done
 
     - name: Push JARs to GCS
