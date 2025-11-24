@@ -49,42 +49,45 @@ jobs:
           GCS_BUCKET="${{ env.GCS_BUCKET }}"
           # List, sort, and get the latest JAR for this service
           LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" 2>/dev/null | sort | tail -n 1)
-          if [[ -z "$LATEST_JAR" ]]; then
-            echo "No JAR found for $SERVICE, exiting!"
-            exit 1
-          fi
-          echo "Latest artifact for $SERVICE: $LATEST_JAR"
-          gsutil cp "$LATEST_JAR" app.jar
+          echo $SERVICE
+          echo $LATEST_JAR
+          echo $GCS_BUCKET
+#          if [[ -z "$LATEST_JAR" ]]; then
+#            echo "No JAR found for $SERVICE, exiting!"
+#            exit 1
+#          fi
+#          echo "Latest artifact for $SERVICE: $LATEST_JAR"
+#          gsutil cp "$LATEST_JAR" app.jar
 
-      - name: Create Dockerfile dynamically
-        run: |
-          SERVICE_PORT=${{ matrix.service.port }}
-          cat <<EOF > Dockerfile
-          FROM eclipse-temurin:8-jre
-          COPY app.jar /app/app.jar
-          EXPOSE $SERVICE_PORT
-          CMD ["java", "-Xmx200m", "-jar", "/app/app.jar"]
-          EOF
-
-      - name: Build Docker image
-        run: |
-          docker build -t sandeshsanthu/${{ matrix.service.name }}:latest .
-
-      - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: sandeshsanthu/${{ matrix.service.name }}:latest
-          format: 'table'
-          exit-code: '1'
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push image to Docker Hub
-        run: |
-          docker push sandeshsanthu/${{ matrix.service.name }}:latest
+#      - name: Create Dockerfile dynamically
+#        run: |
+#          SERVICE_PORT=${{ matrix.service.port }}
+#          cat <<EOF > Dockerfile
+#          FROM eclipse-temurin:8-jre
+#          COPY app.jar /app/app.jar
+#          EXPOSE $SERVICE_PORT
+#          CMD ["java", "-Xmx200m", "-jar", "/app/app.jar"]
+#          EOF
+#
+#      - name: Build Docker image
+#        run: |
+#          docker build -t sandeshsanthu/${{ matrix.service.name }}:latest .
+#
+#      - name: Scan Docker image with Trivy
+#        uses: aquasecurity/trivy-action@master
+#        with:
+#          image-ref: sandeshsanthu/${{ matrix.service.name }}:latest
+#          format: 'table'
+#          exit-code: '1'
+#          vuln-type: 'os,library'
+#          severity: 'CRITICAL,HIGH'
+#
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#      - name: Push image to Docker Hub
+#        run: |
+#          docker push sandeshsanthu/${{ matrix.service.name }}:latest
