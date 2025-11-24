@@ -43,30 +43,24 @@ jobs:
           credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
           project_id: sapient-reducer-477808-m0   # Replace with your GCP project
 
-      - name: Debug GCP Auth
+
+
+
+      - name: Download latest JAR from GCS
         run: |
-          echo "Currently authenticated accounts:"
-          gcloud auth list
+          SERVICE="${{ matrix.service.name }}"
+          GCS_BUCKET="${{ env.GCS_BUCKET }}"
+          # List, sort, and get the latest JAR for this service
+          LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" 2>/dev/null | sort | tail -n 1)
+          echo $SERVICE
+          echo "this is bucket"
+          echo $GCS_BUCKET
+          echo "new added copy"
+          echo "Listing EVERYTHING in gs://$GCS_BUCKET/$SERVICE/"
+          gsutil ls "gs://$GCS_BUCKET/$SERVICE/"
 
-          echo "Active project:"
-          gcloud config get-value project
-
-
-#      - name: Download latest JAR from GCS
-#        run: |
-#          SERVICE="${{ matrix.service.name }}"
-#          GCS_BUCKET="${{ env.GCS_BUCKET }}"
-#          # List, sort, and get the latest JAR for this service
-#          LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" 2>/dev/null | sort | tail -n 1)
-#          echo $SERVICE
-#          echo "this is bucket"
-#          echo $GCS_BUCKET
-#          echo "new added copy"
-#          echo "Listing EVERYTHING in gs://$GCS_BUCKET/$SERVICE/"
-#          gsutil ls "gs://$GCS_BUCKET/$SERVICE/"
-#
-#          echo "Searching for JARs using: gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar"
-#          gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null
+          echo "Searching for JARs using: gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar"
+          gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null
 #
 #          LATEST_JAR=$(gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null | sort | tail -n 1)
 #          echo "LATEST_JAR: $LATEST_JAR"
