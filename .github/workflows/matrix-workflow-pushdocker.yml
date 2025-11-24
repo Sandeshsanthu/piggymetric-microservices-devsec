@@ -50,8 +50,17 @@ jobs:
           # List, sort, and get the latest JAR for this service
           LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" 2>/dev/null | sort | tail -n 1)
           echo $SERVICE
-          echo $LATEST_JAR
+          echo "this is bucket"
           echo $GCS_BUCKET
+          echo "new added copy"
+          echo "Listing EVERYTHING in gs://$GCS_BUCKET/$SERVICE/"
+          gsutil ls "gs://$GCS_BUCKET/$SERVICE/"
+
+          echo "Searching for JARs using: gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar"
+          gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null
+
+          LATEST_JAR=$(gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null | sort | tail -n 1)
+          echo "LATEST_JAR: $LATEST_JAR"
 #          if [[ -z "$LATEST_JAR" ]]; then
 #            echo "No JAR found for $SERVICE, exiting!"
 #            exit 1
