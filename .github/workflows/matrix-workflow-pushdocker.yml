@@ -8,66 +8,62 @@ jobs:
   build-scan-push:
     runs-on: ubuntu-latest
 
-    # List your microservices, .jar and image names here
     strategy:
       matrix:
         service:
           - name: account-service
-            jar: account-service.jar
             port: 6000
           - name: auth-service
-            jar: auth-service.jar
             port: 5000
           - name: config
-            jar: config.jar
             port: 8888
           - name: gateway
-            jar: gateway.jar
             port: 4000
           - name: monitoring
-            jar: monitoring.jar
             port: 8080
           - name: notification-service
-            jar: notification-service.jar
             port: 8000
           - name: registry
-            jar: registry.jar
             port: 8761
           - name: statistics-service
-            jar: statistics-service.jar
             port: 7000
           - name: turbine-stream-service
-            jar: turbine-stream-service.jar
             port: 8989
 
     env:
-      GCS_BUCKET: artifacts-javas           # Replace with your actual bucket
+      GCS_BUCKET: artifacts-javas    # Replace if needed
 
     steps:
-      - name: Checkout (optional)
+      - name: Checkout source (optional)
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
-          project_id: sapient-reducer-477808-m0         # Replace with your GCP project
+          project_id: sapient-reducer-477808-m0   # Replace with your GCP project
 
       - name: Download latest JAR from GCS
         run: |
-          SERVICE=${{ matrix.service.name }}
-          GCS_BUCKET=${{ env.GCS_BUCKET }}
-          LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" | sort | tail -n 1)
-          echo "Latest artifact: $LATEST_JAR"
+          SERVICE="${{ matrix.service.name }}"
+          GCS_BUCKET="${{ env.GCS_BUCKET }}"
+          # List, sort, and get the latest JAR for this service
+          LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" 2>/dev/null | sort | tail -n 1)
+          if [[ -z "$LATEST_JAR" ]]; then
+            echo "No JAR found for $SERVICE, exiting!"
+            exit 1
+          fi
+          echo "Latest artifact for $SERVICE: $LATEST_JAR"
           gsutil cp "$LATEST_JAR" app.jar
 
-      - name: Create Dockerfile
+      - name: Create Dockerfile dynamically
         run: |
+          SERVICE_PORT=${{ matrix.service.port }}
           cat <<EOF > Dockerfile
           FROM eclipse-temurin:8-jre
           COPY app.jar /app/app.jar
+          EXPOSE $SERVICE_PORT
           CMD ["java", "-Xmx200m", "-jar", "/app/app.jar"]
-          EXPOSE ${{ matrix.service.port }}
           EOF
 
       - name: Build Docker image
