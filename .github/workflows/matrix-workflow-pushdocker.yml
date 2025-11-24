@@ -47,8 +47,8 @@ jobs:
       - name: Checkout (optional)
         uses: actions/checkout@v4
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
           service_account_key: ${{ secrets.GCP_CREDENTIAL_JSON }}
           project_id: sapient-reducer-477808-m0         # Replace with your GCP project
