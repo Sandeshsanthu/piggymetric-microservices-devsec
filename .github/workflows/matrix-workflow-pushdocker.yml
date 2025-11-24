@@ -53,9 +53,13 @@ jobs:
           credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
           project_id: sapient-reducer-477808-m0         # Replace with your GCP project
 
-      - name: Download .jar from GCS
+      - name: Download latest JAR from GCS
         run: |
-          gsutil cp gs://${GCS_BUCKET}/${{ matrix.service.jar }} app.jar
+          SERVICE=${{ matrix.service.name }}
+          GCS_BUCKET=${{ env.GCS_BUCKET }}
+          LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" | sort | tail -n 1)
+          echo "Latest artifact: $LATEST_JAR"
+          gsutil cp "$LATEST_JAR" app.jar
 
       - name: Create Dockerfile
         run: |
