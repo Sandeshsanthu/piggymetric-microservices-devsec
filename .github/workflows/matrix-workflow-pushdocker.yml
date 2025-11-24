@@ -43,6 +43,20 @@ jobs:
           credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
           project_id: sapient-reducer-477808-m0   # Replace with your GCP project
 
+      - name: Debug GCP Auth
+        run: |
+          echo "Currently authenticated accounts:"
+          gcloud auth list
+
+          echo "Active project:"
+          gcloud config get-value project
+
+          echo "Trying gsutil with whoami:"
+          gsutil whoami
+
+          echo "Attempting simple bucket list:"
+          gsutil ls gs://artifacts-javas
+
       - name: Download latest JAR from GCS
         run: |
           SERVICE="${{ matrix.service.name }}"
