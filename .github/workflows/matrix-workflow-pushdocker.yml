@@ -44,23 +44,25 @@ jobs:
           project_id: sapient-reducer-477808-m0   # Replace with your GCP project
 
 
+      - name: Debug Auth and Env
+        run: |
+          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+          cat $GOOGLE_APPLICATION_CREDENTIALS | grep client_email
+          gcloud auth list
+          gcloud config get-value project
 
+      - name: Manual gcloud activation
+        run: |
+          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+          gcloud config set project sapient-reducer-477808-m0
+          gcloud auth list
 
       - name: Download latest JAR from GCS
         run: |
+          export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS"
           SERVICE="${{ matrix.service.name }}"
           GCS_BUCKET="${{ env.GCS_BUCKET }}"
-          # List, sort, and get the latest JAR for this service
-          LATEST_JAR=$(gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/${SERVICE}-*.jar" 2>/dev/null | sort | tail -n 1)
-          echo $SERVICE
-          echo "this is bucket"
-          echo $GCS_BUCKET
-          echo "new added copy"
-          echo "Listing EVERYTHING in gs://$GCS_BUCKET/$SERVICE/"
-          gsutil ls "gs://$GCS_BUCKET/$SERVICE/"
-
-          echo "Searching for JARs using: gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar"
-          gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null
+          gsutil ls "gs://${GCS_BUCKET}/${SERVICE}/"
 #
 #          LATEST_JAR=$(gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null | sort | tail -n 1)
 #          echo "LATEST_JAR: $LATEST_JAR"
