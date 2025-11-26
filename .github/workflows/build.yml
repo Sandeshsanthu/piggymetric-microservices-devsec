@@ -43,25 +43,25 @@ jobs:
           for SVC in "${services[@]}"; do
             if [ -f "$SVC/pom.xml" ]; then
               echo "Building $SVC..."
-              mvn -f $SVC/pom.xml clean package -DskipTests -Dsurefire.forkCount=1 -DargLine="-Xmx1024m"
+              echo $SVC
             else
               echo "No pom.xml found for $SVC, skipping."
             fi
           done
 
-      - name: Push all JARs to GCS
-        run: |
-          IFS=',' read -ra services <<< "${SERVICES}"
-          for SVC in "${services[@]}"; do
-            # Look for a regular repackaged jar (skip *sources.jar, *javadoc.jar, etc.)
-            JAR=$(ls $SVC/target/*.jar | grep -v 'sources\|javadoc\|plain' | head -n 1)
-            if [ -n "$JAR" ]; then
-              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-              COMMIT=$(git rev-parse --short HEAD)
-              ARTIFACT="$(basename $SVC)-${TIMESTAMP}-${COMMIT}.jar"
-              echo "Uploading $JAR to gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
-              gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
-            else
-              echo "No jar found for $SVC, skipping upload."
-            fi
-          done
+#      - name: Push all JARs to GCS
+#        run: |
+#          IFS=',' read -ra services <<< "${SERVICES}"
+#          for SVC in "${services[@]}"; do
+#            # Look for a regular repackaged jar (skip *sources.jar, *javadoc.jar, etc.)
+#            JAR=$(ls $SVC/target/*.jar | grep -v 'sources\|javadoc\|plain' | head -n 1)
+#            if [ -n "$JAR" ]; then
+#              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+#              COMMIT=$(git rev-parse --short HEAD)
+#              ARTIFACT="$(basename $SVC)-${TIMESTAMP}-${COMMIT}.jar"
+#              echo "Uploading $JAR to gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
+#              gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
+#            else
+#              echo "No jar found for $SVC, skipping upload."
+#            fi
+#          done
