@@ -7,7 +7,6 @@ on:
 
 env:
   GCS_BUCKET: "artifacts-javas"
-  GCP_CREDENTIAL_ID: ${{ secrets.GCP_CREDENTIAL_ID }}
   SERVICES: "account-service,auth-service,notification-service,config,gateway,monitoring,registry,statistics-service,turbine-stream-service"
 
 jobs:
@@ -15,23 +14,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
 
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: sapient-reducer-477808-m0
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: sapient-reducer-477808-m0
+
+      # Optional: Only build changed services (if you're using change detection logic)
+      # - name: Detect changed services
 
 
+      - name: Build all services
+        run: |
+          IFS=',' read -ra services <<< "${SERVICES}"
+          for SVC in "${services[@]}"; do
+            if [ -f "$SVC/pom.xml" ]; then
+              echo "Building $SVC..."
+              mvn -f $SVC/pom.xml clean package -DskipTests -Dsurefire.forkCount=1 -DargLine="-Xmx1024m"
+            else
+              echo "No pom.xml found for $SVC, skipping."
+            fi
+          done
+
+      - name: Push all JARs to GCS
+        run: |
+          IFS=',' read -ra services <<< "${SERVICES}"
+          for SVC in "${services[@]}"; do
+            # Look for a regular repackaged jar (skip *sources.jar, *javadoc.jar, etc.)
+            JAR=$(ls $SVC/target/*.jar | grep -v 'sources\|javadoc\|plain' | head -n 1)
+            if [ -n "$JAR" ]; then
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+              COMMIT=$(git rev-parse --short HEAD)
+              ARTIFACT="$(basename $SVC)-${TIMESTAMP}-${COMMIT}.jar"
+              echo "Uploading $JAR to gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
+              gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
+            else
+              echo "No jar found for $SVC, skipping upload."
+            fi
+          done
