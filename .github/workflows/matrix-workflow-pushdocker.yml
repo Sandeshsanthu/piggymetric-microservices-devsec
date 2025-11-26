@@ -1,105 +1,105 @@
-name: Build, Scan, and Push Multiple Docker Images from GCS to Docker Hub
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  build-scan-push:
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        service:
-          - name: account-service
-            port: 6000
-          - name: auth-service
-            port: 5000
-          - name: config
-            port: 8888
-          - name: gateway
-            port: 4000
-          - name: monitoring
-            port: 8080
-          - name: notification-service
-            port: 8000
-          - name: registry
-            port: 8761
-          - name: statistics-service
-            port: 7000
-          - name: turbine-stream-service
-            port: 8989
-
-    env:
-      GCS_BUCKET: artifacts-javas    # Replace if needed
-
-    steps:
-      - name: Checkout source (optional)
-        uses: actions/checkout@v4
-
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_CREDENTIAL_DOCK }}
-          project_id: sapient-reducer-477808-m0   # Replace with your GCP project
-
-
-      - name: Debug Auth and Env
-        run: |
-          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
-          cat $GOOGLE_APPLICATION_CREDENTIALS | grep client_email
-          gcloud auth list
-          gcloud config get-value project
-
-      - name: Manual gcloud activation
-        run: |
-          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
-          gcloud config set project sapient-reducer-477808-m0
-          gcloud auth list
-
-      - name: Download latest JAR from GCS
-        run: |
-          export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS"
-          SERVICE="${{ matrix.service.name }}"
-          GCS_BUCKET="${{ env.GCS_BUCKET }}"
-          LATEST_JAR=$(gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null | sort | tail -n 1)
-          echo "LATEST_JAR: $LATEST_JAR"
-          if [[ -z "$LATEST_JAR" ]]; then
-            echo "No JAR found for $SERVICE, exiting!"
-            exit 1
-          fi
-          echo "Latest artifact for $SERVICE: $LATEST_JAR"
-          gsutil cp "$LATEST_JAR" app.jar
-
-      - name: Create Dockerfile dynamically
-        run: |
-          SERVICE_PORT=${{ matrix.service.port }}
-          cat <<EOF > Dockerfile
-          FROM eclipse-temurin:8-jre
-          COPY app.jar /app/app.jar
-          EXPOSE $SERVICE_PORT
-          CMD ["java", "-Xmx200m", "-jar", "/app/app.jar"]
-          EOF
-
-      - name: Build Docker image
-        run: |
-          docker build -t sandeshsanthu/${{ matrix.service.name }}:latest .
-
-      - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: sandeshsanthu/${{ matrix.service.name }}:latest
-          format: 'table'
-          exit-code: '1'
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Push image to Docker Hub
-        run: |
-          docker push sandeshsanthu/${{ matrix.service.name }}:latest
+#name: Build, Scan, and Push Multiple Docker Images from GCS to Docker Hub
+#
+#on:
+#  push:
+#    branches: [main]
+#
+#jobs:
+#  build-scan-push:
+#    runs-on: ubuntu-latest
+#
+#    strategy:
+#      matrix:
+#        service:
+#          - name: account-service
+#            port: 6000
+#          - name: auth-service
+#            port: 5000
+#          - name: config
+#            port: 8888
+#          - name: gateway
+#            port: 4000
+#          - name: monitoring
+#            port: 8080
+#          - name: notification-service
+#            port: 8000
+#          - name: registry
+#            port: 8761
+#          - name: statistics-service
+#            port: 7000
+#          - name: turbine-stream-service
+#            port: 8989
+#
+#    env:
+#      GCS_BUCKET: artifacts-javas    # Replace if needed
+#
+#    steps:
+#      - name: Checkout source (optional)
+#        uses: actions/checkout@v4
+#
+#      - name: Authenticate to Google Cloud
+#        uses: google-github-actions/auth@v2
+#        with:
+#          credentials_json: ${{ secrets.GCP_CREDENTIAL_DOCK }}
+#          project_id: sapient-reducer-477808-m0   # Replace with your GCP project
+#
+#
+#      - name: Debug Auth and Env
+#        run: |
+#          echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+#          cat $GOOGLE_APPLICATION_CREDENTIALS | grep client_email
+#          gcloud auth list
+#          gcloud config get-value project
+#
+#      - name: Manual gcloud activation
+#        run: |
+#          gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS"
+#          gcloud config set project sapient-reducer-477808-m0
+#          gcloud auth list
+#
+#      - name: Download latest JAR from GCS
+#        run: |
+#          export GOOGLE_APPLICATION_CREDENTIALS="$GOOGLE_APPLICATION_CREDENTIALS"
+#          SERVICE="${{ matrix.service.name }}"
+#          GCS_BUCKET="${{ env.GCS_BUCKET }}"
+#          LATEST_JAR=$(gsutil ls "gs://$GCS_BUCKET/$SERVICE/$SERVICE-*.jar" 2>/dev/null | sort | tail -n 1)
+#          echo "LATEST_JAR: $LATEST_JAR"
+#          if [[ -z "$LATEST_JAR" ]]; then
+#            echo "No JAR found for $SERVICE, exiting!"
+#            exit 1
+#          fi
+#          echo "Latest artifact for $SERVICE: $LATEST_JAR"
+#          gsutil cp "$LATEST_JAR" app.jar
+#
+#      - name: Create Dockerfile dynamically
+#        run: |
+#          SERVICE_PORT=${{ matrix.service.port }}
+#          cat <<EOF > Dockerfile
+#          FROM eclipse-temurin:8-jre
+#          COPY app.jar /app/app.jar
+#          EXPOSE $SERVICE_PORT
+#          CMD ["java", "-Xmx200m", "-jar", "/app/app.jar"]
+#          EOF
+#
+#      - name: Build Docker image
+#        run: |
+#          docker build -t sandeshsanthu/${{ matrix.service.name }}:latest .
+#
+#      - name: Scan Docker image with Trivy
+#        uses: aquasecurity/trivy-action@master
+#        with:
+#          image-ref: sandeshsanthu/${{ matrix.service.name }}:latest
+#          format: 'table'
+#          exit-code: '1'
+#          vuln-type: 'os,library'
+#          severity: 'CRITICAL,HIGH'
+#
+#      - name: Log in to Docker Hub
+#        uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#
+#      - name: Push image to Docker Hub
+#        run: |
+#          docker push sandeshsanthu/${{ matrix.service.name }}:latest

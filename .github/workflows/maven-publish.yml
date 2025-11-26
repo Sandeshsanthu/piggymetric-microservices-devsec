@@ -1,107 +1,107 @@
-name: Build and Deploy Microservices
-
-on:
-  push:
-    branches:
-      - main
-
-env:
-  GCS_BUCKET: "artifacts-javas"
-  GCP_CREDENTIAL_ID: ${{ secrets.GCP_CREDENTIAL_ID }}
-  SERVICES: "account-service,auth-service,notification-service,config,gateway,monitoring,registry,statistics-service,turbine-stream-service"
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
-
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: sapient-reducer-477808-m0
-
-    - name: Detect changed services
-      id: changes
-      run: |
-        if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-          BASE_REF="HEAD~1"
-        else
-          BASE_REF=""
-        fi
-
-        echo "Using BASE_REF: $BASE_REF"
-
-        CHANGED_SERVICES=""
-        if [ -n "$BASE_REF" ]; then
-          CHANGED_FILES=$(git diff --name-only $BASE_REF HEAD)
-          echo "Changed files since $BASE_REF:"
-          echo "$CHANGED_FILES"
-          for SVC in $(echo "${SERVICES}" | tr ',' '\n'); do
-            SVC=$(echo "$SVC" | xargs)
-            if echo "$CHANGED_FILES" | grep -q "^$SVC/"; then
-              CHANGED_SERVICES="$CHANGED_SERVICES $SVC"
-            fi
-          done
-        else
-          # First commit: assume all services changed
-          CHANGED_SERVICES=$(echo "${SERVICES}" | tr ',' ' ')
-        fi
-
-        CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | xargs)
-        echo "changed_services=$CHANGED_SERVICES" >> $GITHUB_OUTPUT
-      env:
-        SERVICES: ${{ env.SERVICES }}
-
-    - name: Print Maven dependency tree for changed services
-      if: steps.changes.outputs.changed_services != ''
-      run: |
-          CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
-          for SVC in $CHANGED_SERVICES; do
-            if [ -n "$SVC" ]; then
-              echo "Printing dependency tree for $SVC..."
-              mvn -f $SVC/pom.xml dependency:tree
-            fi
-          done
-
-    - name: Build services
-      if: steps.changes.outputs.changed_services != ''
-      run: |
-        CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
-        echo "Services to build: $CHANGED_SERVICES"
-        for SVC in $CHANGED_SERVICES; do
-          if [ -n "$SVC" ]; then
-            echo "Building $SVC..."
-            mvn -f $SVC/pom.xml clean package -DskipTests \
-                -Dsurefire.forkCount=1 \
-                -DargLine="-Xmx1024m"
-          fi
-        done
-
-    - name: Push JARs to GCS
-      if: steps.changes.outputs.changed_services != ''
-      run: |
-        for SVC in ${{ steps.changes.outputs.changed_services }}; do
-          JAR=$(ls $SVC/target/*.jar | head -n 1)
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          COMMIT=$(git rev-parse --short HEAD)
-          ARTIFACT="${SVC}-${TIMESTAMP}-${COMMIT}.jar"
-          gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
-        done
-
-    - name: Failure Notification
-      if: failure()
-      run: echo "Pipeline failed. Please check logs for details."
+#name: Build and Deploy Microservices
+#
+#on:
+#  push:
+#    branches:
+#      - main
+#
+#env:
+#  GCS_BUCKET: "artifacts-javas"
+#  GCP_CREDENTIAL_ID: ${{ secrets.GCP_CREDENTIAL_ID }}
+#  SERVICES: "account-service,auth-service,notification-service,config,gateway,monitoring,registry,statistics-service,turbine-stream-service"
+#
+#jobs:
+#  build-and-deploy:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - name: Checkout repository
+#      uses: actions/checkout@v4
+#
+#    - name: Set up JDK 17
+#      uses: actions/setup-java@v4
+#      with:
+#        distribution: 'temurin'
+#        java-version: '17'
+#
+#    - name: Authenticate to Google Cloud
+#      uses: google-github-actions/auth@v2
+#      with:
+#        credentials_json: ${{ secrets.GCP_CREDENTIAL_JSON }}
+#
+#    - name: Set up Google Cloud SDK
+#      uses: google-github-actions/setup-gcloud@v2
+#      with:
+#        project_id: sapient-reducer-477808-m0
+#
+#    - name: Detect changed services
+#      id: changes
+#      run: |
+#        if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+#          BASE_REF="HEAD~1"
+#        else
+#          BASE_REF=""
+#        fi
+#
+#        echo "Using BASE_REF: $BASE_REF"
+#
+#        CHANGED_SERVICES=""
+#        if [ -n "$BASE_REF" ]; then
+#          CHANGED_FILES=$(git diff --name-only $BASE_REF HEAD)
+#          echo "Changed files since $BASE_REF:"
+#          echo "$CHANGED_FILES"
+#          for SVC in $(echo "${SERVICES}" | tr ',' '\n'); do
+#            SVC=$(echo "$SVC" | xargs)
+#            if echo "$CHANGED_FILES" | grep -q "^$SVC/"; then
+#              CHANGED_SERVICES="$CHANGED_SERVICES $SVC"
+#            fi
+#          done
+#        else
+#          # First commit: assume all services changed
+#          CHANGED_SERVICES=$(echo "${SERVICES}" | tr ',' ' ')
+#        fi
+#
+#        CHANGED_SERVICES=$(echo "$CHANGED_SERVICES" | xargs)
+#        echo "changed_services=$CHANGED_SERVICES" >> $GITHUB_OUTPUT
+#      env:
+#        SERVICES: ${{ env.SERVICES }}
+#
+#    - name: Print Maven dependency tree for changed services
+#      if: steps.changes.outputs.changed_services != ''
+#      run: |
+#          CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
+#          for SVC in $CHANGED_SERVICES; do
+#            if [ -n "$SVC" ]; then
+#              echo "Printing dependency tree for $SVC..."
+#              mvn -f $SVC/pom.xml dependency:tree
+#            fi
+#          done
+#
+#    - name: Build services
+#      if: steps.changes.outputs.changed_services != ''
+#      run: |
+#        CHANGED_SERVICES="${{ steps.changes.outputs.changed_services }}"
+#        echo "Services to build: $CHANGED_SERVICES"
+#        for SVC in $CHANGED_SERVICES; do
+#          if [ -n "$SVC" ]; then
+#            echo "Building $SVC..."
+#            mvn -f $SVC/pom.xml clean package -DskipTests \
+#                -Dsurefire.forkCount=1 \
+#                -DargLine="-Xmx1024m"
+#          fi
+#        done
+#
+#    - name: Push JARs to GCS
+#      if: steps.changes.outputs.changed_services != ''
+#      run: |
+#        for SVC in ${{ steps.changes.outputs.changed_services }}; do
+#          JAR=$(ls $SVC/target/*.jar | head -n 1)
+#          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+#          COMMIT=$(git rev-parse --short HEAD)
+#          ARTIFACT="${SVC}-${TIMESTAMP}-${COMMIT}.jar"
+#          gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
+#        done
+#
+#    - name: Failure Notification
+#      if: failure()
+#      run: echo "Pipeline failed. Please check logs for details."
