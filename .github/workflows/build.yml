@@ -43,7 +43,7 @@ jobs:
           for SVC in "${services[@]}"; do
             if [ -f "$SVC/pom.xml" ]; then
               echo "Building $SVC..."
-              echo $SVC
+              echo "$SVC/pom.xml"
             else
               echo "No pom.xml found for $SVC, skipping."
             fi
