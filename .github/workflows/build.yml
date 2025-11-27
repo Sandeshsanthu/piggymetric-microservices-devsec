@@ -49,7 +49,7 @@ jobs:
             fi
           done
 
-#      - name: Push all JARs to GCS
+#      - name: Push all JARs to GCSs
 #        run: |
 #          IFS=',' read -ra services <<< "${SERVICES}"
 #          for SVC in "${services[@]}"; do
