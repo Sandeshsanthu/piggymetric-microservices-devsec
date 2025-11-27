@@ -1,4 +1,4 @@
-name: Build and Deploy Microservices
+name: Build and Deploy Config Service
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  GCS_BUCKET: "artifacts-javas"
-  SERVICES: "account-service,auth-service,notification-service,config,gateway,monitoring,registry,statistics-service,turbine-stream-service"
+  GCS_BUCKET: "artifacts-java"
+  SERVICE: "config"
 
 jobs:
   build-and-deploy:
@@ -33,35 +33,28 @@ jobs:
         with:
           project_id: sapient-reducer-477808-m0
 
-      # Optional: Only build changed services (if you're using change detection logic)
-      # - name: Detect changed services
-
-
-      - name: Build all services
+      - name: Build config service
         run: |
-          IFS=',' read -ra services <<< "${SERVICES}"
-          for SVC in "${services[@]}"; do
-            if [ -f "$SVC/pom.xml" ]; then
-              echo "Building $SVC..."
-              echo "$SVC/pom.xml"
-            else
-              echo "No pom.xml found for $SVC, skipping."
-            fi
-          done
+          if [ -f "${SERVICE}/pom.xml" ]; then
+            echo "Building ${SERVICE}..."
+            cd ${SERVICE}
+            mvn clean package -DskipTests
+          else
+            echo "No pom.xml found for ${SERVICE}, skipping."
+            exit 1
+          fi
 
-#      - name: Push all JARs to GCSs
-#        run: |
-#          IFS=',' read -ra services <<< "${SERVICES}"
-#          for SVC in "${services[@]}"; do
-#            # Look for a regular repackaged jar (skip *sources.jar, *javadoc.jar, etc.)
-#            JAR=$(ls $SVC/target/*.jar | grep -v 'sources\|javadoc\|plain' | head -n 1)
-#            if [ -n "$JAR" ]; then
-#              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-#              COMMIT=$(git rev-parse --short HEAD)
-#              ARTIFACT="$(basename $SVC)-${TIMESTAMP}-${COMMIT}.jar"
-#              echo "Uploading $JAR to gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
-#              gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SVC}/${ARTIFACT}"
-#            else
-#              echo "No jar found for $SVC, skipping upload."
-#            fi
-#          done
+      - name: Push JAR to GCS
+        run: |
+          # Look for a regular repackaged jar (skip *sources.jar, *javadoc.jar, etc.)
+          JAR=$(ls ${SERVICE}/target/*.jar | grep -v 'sources\|javadoc\|plain' | head -n 1)
+          if [ -n "$JAR" ]; then
+            TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+            COMMIT=$(git rev-parse --short HEAD)
+            ARTIFACT="$(basename ${SERVICE})-${TIMESTAMP}-${COMMIT}.jar"
+            echo "Uploading $JAR to gs://${GCS_BUCKET}/${SERVICE}/${ARTIFACT}"
+            gsutil cp "$JAR" "gs://${GCS_BUCKET}/${SERVICE}/${ARTIFACT}"
+          else
+            echo "No jar found for ${SERVICE}, skipping upload."
+            exit 1
+          fi
